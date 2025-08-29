@@ -97,7 +97,8 @@ function recreateTables()
   /* Create the bookmark hyperlink */
   var link = document.getElementById('saveLink');
   if (link) {
-    link.href = 'subnets.html?network='+inet_ntoa(curNetwork)+'&mask='+curMask+'&division='+binToAscii(nodeToString(rootSubnet));
+    var namesStr = encodeURIComponent(serializeNames(rootSubnet));
+    link.href = 'subnets.html?network='+inet_ntoa(curNetwork)+'&mask='+curMask+'&division='+binToAscii(nodeToString(rootSubnet))+'&names='+namesStr;
   }
 }
 
