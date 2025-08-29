@@ -5,6 +5,7 @@
 <!--
 
 var visibleColumns = {
+  name: true,
   subnet: true,
   netmask: true,
   range: false,
@@ -162,10 +163,30 @@ function createRow(calcbody, node, address, mask, labels, depth)
     newlabels.push(node[2][1][1]);
     newlabels.push(node[2][1]);
     createRow(calcbody, node[2][1], address+subnet_addresses(mask+1), mask+1, newlabels, depth-1);
-  }
-  else {
+  } else {
     var newRow = document.createElement('TR');
     calcbody.appendChild(newRow);
+
+    // NAME column
+    if (visibleColumns.name) {
+      var nameCell = document.createElement('TD');
+      var nameInput = document.createElement('input');
+      nameInput.type = 'text';
+      nameInput.size = 10;
+      nameInput.value = node[3] || '';
+      nameInput.placeholder = 'NAME';
+      nameInput.onchange = function() {
+        node[3] = nameInput.value;
+        // Immediately update bookmark link when name changes
+        var link = document.getElementById('saveLink');
+        if (link) {
+          var namesStr = encodeURIComponent(serializeNames(rootSubnet));
+          link.href = 'subnets.html?network='+inet_ntoa(curNetwork)+'&mask='+curMask+'&division='+binToAscii(nodeToString(rootSubnet))+'&names='+namesStr;
+        }
+      };
+      nameCell.appendChild(nameInput);
+      newRow.appendChild(nameCell);
+    }
 
     /* subnet address */
     if (visibleColumns.subnet) {
@@ -186,14 +207,12 @@ function createRow(calcbody, node, address, mask, labels, depth)
       addressRange = inet_ntoa(addressFirst);
       useableRange = addressRange;
       numHosts = 1;
-    }
-    else {
+    } else {
       addressRange = inet_ntoa(addressFirst)+' - '+inet_ntoa(addressLast);
       if (mask == 31) {
         useableRange = addressRange;
         numHosts = 2;
-      }
-      else {
+      } else {
         useableRange = inet_ntoa(useableFirst)+' - '+inet_ntoa(useableLast);
         numHosts = (1 + useableLast - useableFirst);
       }
@@ -234,17 +253,16 @@ function createRow(calcbody, node, address, mask, labels, depth)
       newRow.appendChild(newCell);
 
       if (mask == 29) {
-	var newLink = document.createElement('SPAN');
-	newLink.className = 'disabledAction';
-	newLink.appendChild(document.createTextNode('Divide'));
-	newCell.appendChild(newLink);
-      }
-      else {
-	var newLink = document.createElement('A');
-	newLink.href = '#';
-	newLink.onclick = function () { divide(node); return false; }
-	newLink.appendChild(document.createTextNode('Divide'));
-	newCell.appendChild(newLink);
+        var newLink = document.createElement('SPAN');
+        newLink.className = 'disabledAction';
+        newLink.appendChild(document.createTextNode('Divide'));
+        newCell.appendChild(newLink);
+      } else {
+        var newLink = document.createElement('A');
+        newLink.href = '#';
+        newLink.onclick = function () { divide(node); return false; }
+        newLink.appendChild(document.createTextNode('Divide'));
+        newCell.appendChild(newLink);
       }
     }
 
@@ -252,33 +270,49 @@ function createRow(calcbody, node, address, mask, labels, depth)
       var colspan = depth - node[0];
 
       for (var i=(labels.length/3)-1; i>=0; i--) {
-	var mask = labels[i*3];
-	var rowspan = labels[(i*3)+1];
-	var joinnode = labels[(i*3)+2];
+        var mask = labels[i*3];
+        var rowspan = labels[(i*3)+1];
+        var joinnode = labels[(i*3)+2];
 
-	var newCell = document.createElement('TD');
-	newCell.rowSpan = (rowspan > 1 ? rowspan : 1);
-	newCell.colSpan = (colspan > 1 ? colspan : 1);
+        var newCell = document.createElement('TD');
+        newCell.rowSpan = (rowspan > 1 ? rowspan : 1);
+        newCell.colSpan = (colspan > 1 ? colspan : 1);
 
-	if (i == (labels.length/3)-1) {
-	  newCell.className = 'maskSpan';
-	}
-	else {
-	  newCell.className = 'maskSpanJoinable';
-	  newCell.onclick = newJoin(joinnode);
-	  //	newCell.onmouseover = function() { window.status = joinnode[0]+'---'+joinnode[1]+'---'+joinnode[2]+'>>>>>'+node[2];}
-	}
+        if (i == (labels.length/3)-1) {
+          newCell.className = 'maskSpan';
+        } else {
+          newCell.className = 'maskSpanJoinable';
+          newCell.onclick = newJoin(joinnode);
+        }
 
-	var newImg = document.createElement('IMG');
-	newImg.src = 'img/'+mask+'.gif';
-	newCell.appendChild(newImg);
-	newRow.appendChild(newCell);
+        var newImg = document.createElement('IMG');
+        newImg.src = 'img/'+mask+'.gif';
+        newCell.appendChild(newImg);
+        newRow.appendChild(newCell);
 
-	colspan = 1; // reset for subsequent cells
+        colspan = 1; // reset for subsequent cells
       }
     }
   }
+}
+// Recursively serialize names for all leaf nodes, separated by '|'.
+function serializeNames(node) {
+  if (node[2]) {
+    return serializeNames(node[2][0]) + '|' + serializeNames(node[2][1]);
+  } else {
+    return node[3] ? node[3].replace(/\|/g, '') : '';
+  }
+}
 
+// Recursively assign names from array to leaf nodes
+function deserializeNames(node, namesArr, idxObj) {
+  if (node[2]) {
+    deserializeNames(node[2][0], namesArr, idxObj);
+    deserializeNames(node[2][1], namesArr, idxObj);
+  } else {
+    node[3] = (idxObj.idx < namesArr.length) ? namesArr[idxObj.idx] : '';
+    idxObj.idx++;
+  }
 }
 
 /* This is necessary because 'joinnode' changes during the scope of the caller */
@@ -400,8 +434,7 @@ function preloadSubnetImages()
 }
 
 
-function calcOnLoad()
-{
+function calcOnLoad() {
   preloadSubnetImages();
   args = parseQueryString();
   if (args['network'] && args['mask'] && args['division']) {
@@ -413,9 +446,14 @@ function calcOnLoad()
     if (division != '0') {
       loadNode(rootSubnet, division);
     }
+    // Restore names if present
+    if (args['names']) {
+      var namesArr = decodeURIComponent(args['names']).split('|');
+      var idxObj = { idx: 0 };
+      deserializeNames(rootSubnet, namesArr, idxObj);
+    }
     recreateTables();
-  }
-  else {
+  } else {
     updateNetwork();
   }
 }
@@ -589,6 +627,7 @@ If you wish to save this subnetting for later, bookmark <a href="subnets.html" i
 <table class="calc" cellspacing="0" cellpadding="2">
 <thead>
 <tr>
+<th id="nameHeader">NAME</th>
 <th id="subnetHeader">Subnet address</th>
 <th id="netmaskHeader">Netmask</th>
 <th id="rangeHeader">Range of addresses</th>
