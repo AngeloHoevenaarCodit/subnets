@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Converter</title>
+</head>
+<body>
+    <h1>Converting URL...</h1>
+    <div id="result"></div>
+    <script>
+        // Old names string (URL decoded)
+        var oldNames = "vnet-stpcon-prd-gwc-primary||vnet-stpmgmt-prd-gwc-primary|vnet-cdtgwc-dev-gwc-primary|free-space-shsrvc|||vnet-shsrvc-prd-gwc-primary|free-space-shsrvc|vnet-ingest-dev-gwc-primary|vnet-ingest-acc-gwc-primary|vnet-ingest-prd-gwc-primary|free-space-ingest|vnet-sales-dev-gwc-primary|vnet-sales-acc-gwc-primary|vnet-sales-prc-gwc-primary|free-space-sales| vnet-identity-dev-gwc-primary|vnet-identity-acc-gwc-primary|vnet-identity-prd-gwc-primary|free-space-identity|vnet-entitle-dev-gwc-primary|vnet-entitle-acc-gwc-primary|vnet-entitle-prd-gwc-primary|free-space-entitle|vnet-dana-dev-gwc-primary|vnet-dana-acc-gwc-primary|vnet-dana-prd-gwc-primary|free-space-dana|vnet-pers-dev-gwc-primary|vnet-pers-acc-gwc-primary|vnet-pers-prd-gwc-primary|free-space-pers|9|9|9|9|10|10|10|10|11|11|11|11|12|12|12|12|13|13|13|13|14|14|14|14|15|15|15|15|16|16|16|16|17|17|17|17|18|18|18|18|19|19|19|19|20|20|20|20|21|21|21|21|22|22|22|22|23|23|23|23|24|24|24|24|25|25|25|25|26|26|26|26|27|27|27|27|28|28|28|28||";
+        
+        // Compress using Base64
+        var compressed = btoa(unescape(encodeURIComponent(oldNames)));
+        
+        // Build new URL
+        var newUrl = "http://localhost:8080/subnets.html?network=172.16.128.0&mask=17&division=229.f956c5627239f8c2397239399cf46272397239399c7239399c399c9c40&names=" + compressed;
+        
+        // Display results
+        var resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '<h2>Conversion Results</h2>' +
+            '<p><strong>Old URL Length:</strong> ' + (1733) + ' characters</p>' +
+            '<p><strong>New URL Length:</strong> ' + newUrl.length + ' characters</p>' +
+            '<p><strong>Savings:</strong> ' + (1733 - newUrl.length) + ' characters (' + Math.round((1733 - newUrl.length) / 1733 * 100) + '%)</p>' +
+            '<h3>Your New URL:</h3>' +
+            '<p style="word-break: break-all; background: #f0f0f0; padding: 10px; border: 1px solid #ccc;">' +
+            '<a href="' + newUrl + '" target="_blank">' + newUrl + '</a></p>' +
+            '<h3>Compressed Names Parameter:</h3>' +
+            '<p style="word-break: break-all; background: #f0f0f0; padding: 10px; border: 1px solid #ccc;">' + compressed + '</p>';
+        
+        console.log('New URL:', newUrl);
+        console.log('Compressed names:', compressed);
+    </script>
+</body>
+</html>
