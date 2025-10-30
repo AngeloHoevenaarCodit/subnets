@@ -97,7 +97,7 @@ function recreateTables()
   /* Create the bookmark hyperlink */
   var link = document.getElementById('saveLink');
   if (link) {
-    var namesStr = encodeURIComponent(serializeNames(rootSubnet));
+    var namesStr = compressNames(serializeNames(rootSubnet));
     link.href = 'subnets.html?network='+inet_ntoa(curNetwork)+'&mask='+curMask+'&division='+binToAscii(nodeToString(rootSubnet))+'&names='+namesStr;
   }
 }
@@ -173,7 +173,6 @@ function createRow(calcbody, node, address, mask, labels, depth)
       var nameCell = document.createElement('TD');
       var nameInput = document.createElement('input');
       nameInput.type = 'text';
-      nameInput.size = 10;
       nameInput.value = node[3] || '';
       nameInput.placeholder = 'NAME';
       nameInput.onchange = function() {
@@ -181,7 +180,7 @@ function createRow(calcbody, node, address, mask, labels, depth)
         // Immediately update bookmark link when name changes
         var link = document.getElementById('saveLink');
         if (link) {
-          var namesStr = encodeURIComponent(serializeNames(rootSubnet));
+          var namesStr = compressNames(serializeNames(rootSubnet));
           link.href = 'subnets.html?network='+inet_ntoa(curNetwork)+'&mask='+curMask+'&division='+binToAscii(nodeToString(rootSubnet))+'&names='+namesStr;
         }
       };
@@ -302,6 +301,29 @@ function serializeNames(node) {
     return serializeNames(node[2][0]) + '|' + serializeNames(node[2][1]);
   } else {
     return node[3] ? node[3].replace(/\|/g, '') : '';
+  }
+}
+
+// Compress names using Base64 encoding
+function compressNames(namesStr) {
+  if (!namesStr) return '';
+  try {
+    // Use btoa for Base64 encoding
+    return btoa(unescape(encodeURIComponent(namesStr)));
+  } catch(e) {
+    return encodeURIComponent(namesStr); // Fallback to old method
+  }
+}
+
+// Decompress names from Base64
+function decompressNames(compressedStr) {
+  if (!compressedStr) return '';
+  try {
+    // Try Base64 decoding first
+    return decodeURIComponent(escape(atob(compressedStr)));
+  } catch(e) {
+    // Fallback: might be old format
+    return decodeURIComponent(compressedStr);
   }
 }
 
@@ -449,7 +471,8 @@ function calcOnLoad() {
     }
     // Restore names if present
     if (args['names']) {
-      var namesArr = decodeURIComponent(args['names']).split('|');
+      var namesStr = decompressNames(args['names']);
+      var namesArr = namesStr.split('|');
       var idxObj = { idx: 0 };
       deserializeNames(rootSubnet, namesArr, idxObj);
     }
@@ -540,6 +563,7 @@ P		{
   font-family: Arial, Verdana, sans-serif;
   font-size: 80%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .calc td, .calc th {
@@ -549,6 +573,22 @@ P		{
 .calc thead {
   font-weight: bold;
   background-color: #eeeeee;
+}
+
+.calc th:first-child {
+  resize: horizontal;
+  overflow: auto;
+  min-width: 80px;
+  width: 150px;
+}
+
+.calc td:first-child {
+  overflow: visible;
+}
+
+.calc td:first-child input {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .disabledAction {
